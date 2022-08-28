@@ -1,0 +1,469 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.2.0/dist/css/bootstrap.min.css" rel="stylesheet" integrity="sha384-gH2yIJqKdNHPEq0n4Mqa/HGKIhSkIHeL5AyhkYV8i59U5AR6csBvApHHNl/vI1Bx" crossorigin="anonymous">
+  </head>
+<script>
+    serverLimits = {};
+
+    //TODO
+    //add download link {upper right corner?}
+
+    async function grabServers(){
+        fetch("https://panel.mroley.dev/api/client/", {
+        "method": "GET",
+        "headers": {
+            "Accept": "application/json",
+            "Content-Type": "application/json",
+            "Authorization": "Bearer ptlc_OEPXRXy647aoYseK04TnUZxsCTKn0DDCCzhpfT0DutN"
+        }
+        })
+        .then((response) => response.json())
+        .then(data => {run(data.data)})
+        .catch(err => console.error(err));
+    }
+    grabServers()
+
+    async function fetchAndSetUrls(serverId) {
+        await fetch("https://panel.mroley.dev/api/client/servers/" + serverId + "/files/list", {
+        "method": "GET",
+        "headers": {
+            "Accept": "application/json",
+            "Content-Type": "application/json",
+            "Authorization": "Bearer ptlc_OEPXRXy647aoYseK04TnUZxsCTKn0DDCCzhpfT0DutN"
+        }
+        })
+        .then((response) => response.json())
+        .then(data => {
+            var bgPresent = false
+            var icPresent = false
+            var dlPresent = false
+            var lkPresent = false
+            data.data.forEach(element => {
+                if (element.attributes.name == "server_background.png") {bgPresent = true}
+                if (element.attributes.name == "server_icon.png") {icPresent = true}
+                if (element.attributes.name == "server_download.zip") {dlPresent = true}
+                if (element.attributes.name == "server_download.txt") {lkPresent = true}
+            })
+            async function grab() {
+                if (bgPresent) {
+                    await fetch("https://panel.mroley.dev/api/client/servers/" + serverId + "/files/download?file=server_background.png", {
+                        "method": "GET",
+                        "headers": {
+                            "Accept": "application/json",
+                            "Content-Type": "application/json",
+                            "Authorization": "Bearer ptlc_OEPXRXy647aoYseK04TnUZxsCTKn0DDCCzhpfT0DutN"
+                        }
+                        })
+                        .then((response) => response.json())
+                        .then(data => {
+                            document.getElementById("BG_" + serverId).style.backgroundImage =  "url('" + data.attributes.url + "')"
+                        })
+                        .catch(err => console.error(err));
+                }
+
+                if (icPresent) {
+                    await fetch("https://panel.mroley.dev/api/client/servers/" + serverId + "/files/download?file=server_icon.png", {
+                        "method": "GET",
+                        "headers": {
+                            "Accept": "application/json",
+                            "Content-Type": "application/json",
+                            "Authorization": "Bearer ptlc_OEPXRXy647aoYseK04TnUZxsCTKn0DDCCzhpfT0DutN"
+                        }
+                        })
+                        .then((response) => response.json())
+                        .then(data => {
+                            document.getElementById("IC_" + serverId).style.backgroundImage =  "url('" + data.attributes.url + "')"
+                        })
+                        .catch(err => console.error(err));
+                }
+
+                if (dlPresent) {
+                    await fetch("https://panel.mroley.dev/api/client/servers/" + serverId + "/files/download?file=server_download.zip", {
+                        "method": "GET",
+                        "headers": {
+                            "Accept": "application/json",
+                            "Content-Type": "application/json",
+                            "Authorization": "Bearer ptlc_OEPXRXy647aoYseK04TnUZxsCTKn0DDCCzhpfT0DutN"
+                        }
+                        })
+                        .then((response) => response.json())
+                        .then(data => {
+                            document.getElementById("DLA_" + serverId).href = data.attributes.url
+                            document.getElementById("DLD_" + serverId).style.display = "inherit"
+                        })
+                        .catch(err => console.error(err));
+                }
+
+                if (lkPresent) {
+                    await fetch("https://panel.mroley.dev/api/client/servers/" + serverId + "/files/contents?file=server_download.txt", {
+                        "method": "GET",
+                        "headers": {
+                            "Accept": "application/text",
+                            "Content-Type": "application/text",
+                            "Authorization": "Bearer ptlc_OEPXRXy647aoYseK04TnUZxsCTKn0DDCCzhpfT0DutN"
+                        }
+                        })
+                        .then((response) => response.text())
+                        .then(data => {
+                            document.getElementById("DLA_" + serverId).href = data
+                            document.getElementById("DLA_" + serverId).target = "_blank"
+                            document.getElementById("DLD_" + serverId).style.display = "inherit"
+                        })
+                        .catch(err => console.error(err));
+                }
+            }
+            grab()
+        })
+        .catch(err => console.error(err));
+    }
+
+    function timeFormat(ms) {
+        var min = Math.floor((ms / 60000) % 60);
+        var hour = Math.floor((ms / 1200000) % 24);
+        var days = Math.floor(ms / 86400000);
+        return [
+        days.toString().padStart(2, "0"),
+        hour.toString().padStart(2, "0"),
+        min.toString().padStart(2, "0")
+        ].join(":");
+    }
+
+    function run(servers) {
+        servers.forEach((element, index) => {
+            if(element.attributes.relationships.allocations.data[0].attributes.ip_alias.slice(0,2)=="mc") {
+                serverLimits["'" + element.attributes.identifier + "'"] = [element.attributes.limits.disk, element.attributes.limits.memory]
+
+                BGImg = document.createElement("div")
+                BGGra = document.createElement("div")
+                DLa = document.createElement("a")
+                DLDiv = document.createElement("div")
+                container = document.createElement("div")
+                row = document.createElement("div")
+                left = document.createElement("div")
+                right = document.createElement("div")
+                icon = document.createElement("div")
+                br1 = document.createElement("br")
+                btnDiv = document.createElement("div")
+                btn = document.createElement("button")
+                title = document.createElement("div")
+                br2 = document.createElement("br")
+                description = document.createElement("div")
+                br3 = document.createElement("br")
+                address = document.createElement("div")
+                lnk = document.createElement("a")
+                br4 = document.createElement("br")
+                br5 = document.createElement("br")
+                collapse = document.createElement("div")
+                accordion = document.createElement("div")
+                collapseRow = document.createElement("div")
+                collapseLeft = document.createElement("div")
+                canvasRow = document.createElement("div")
+                canvasCPUCol = document.createElement("div")
+                canvasRAMCol = document.createElement("div")
+                canvasDISKCol = document.createElement("div")
+                canvasCPULabel = document.createElement("h3")
+                canvasCPUCanvas = document.createElement("canvas")
+                canvasRAMLabel = document.createElement("h3")
+                canvasRAMCanvas = document.createElement("canvas")
+                canvasDISKLabel = document.createElement("h3")
+                canvasDISKCanvas = document.createElement("canvas")
+                collapseRight = document.createElement("div")
+                statusLabel = document.createElement("h3")
+                statusLit = document.createElement("div")
+                uptimeLabel = document.createElement("h3")
+                uptimeLit = document.createElement("div")
+
+                CPUtxt = document.createTextNode("CPU:")
+                RAMtxt = document.createTextNode("RAM:")
+                DISKtxt = document.createTextNode("DISK:")
+                statustxt = document.createTextNode("Status:")
+                uptimetxt = document.createTextNode("Uptime (D/H/M):")
+                serverDetailstxt = document.createTextNode("Server Details")
+
+                BGImg.appendChild(BGGra)
+                BGGra.appendChild(DLa)
+                DLa.appendChild(DLDiv)
+                BGGra.appendChild(container)
+                container.appendChild(row)
+                container.appendChild(br4)
+                container.appendChild(br5)
+                container.appendChild(collapse)
+                row.appendChild(left)
+                row.appendChild(right)
+                left.appendChild(icon)
+                left.appendChild(br1)
+                left.appendChild(btnDiv)
+                right.appendChild(title)
+                right.appendChild(br2)
+                right.appendChild(description)
+                right.appendChild(br3)
+                right.appendChild(address)
+                address.appendChild(lnk)
+                btnDiv.appendChild(btn)
+                collapse.appendChild(accordion)
+                accordion.appendChild(collapseRow)
+                collapseRow.appendChild(collapseLeft)
+                collapseRow.appendChild(collapseRight)
+                collapseLeft.appendChild(canvasRow)
+                collapseRight.appendChild(statusLabel)
+                collapseRight.appendChild(statusLit)
+                collapseRight.appendChild(uptimeLabel)
+                collapseRight.appendChild(uptimeLit)
+                canvasRow.appendChild(canvasCPUCol)
+                canvasRow.appendChild(canvasRAMCol)
+                canvasRow.appendChild(canvasDISKCol)
+                canvasCPUCol.appendChild(canvasCPULabel)
+                canvasCPUCol.appendChild(canvasCPUCanvas)
+                canvasRAMCol.appendChild(canvasRAMLabel)
+                canvasRAMCol.appendChild(canvasRAMCanvas)
+                canvasDISKCol.appendChild(canvasDISKLabel)
+                canvasDISKCol.appendChild(canvasDISKCanvas)
+
+                btn.appendChild(serverDetailstxt)
+                canvasCPULabel.appendChild(CPUtxt)
+                canvasRAMLabel.appendChild(RAMtxt)
+                canvasDISKLabel.appendChild(DISKtxt)
+                statusLabel.appendChild(statustxt)
+                uptimeLabel.appendChild(uptimetxt)
+
+                BGImg.classList = "card-BG-img accordion-item"
+                BGGra.classList = "card-BG-gra"
+                DLDiv.classList = "DLDiv"
+                container.classList = "container"
+                row.classList = "row"
+                left.classList = "col-sm-4 left card"
+                right.classList = "col-sm-8 right"
+                icon.classList = "icon"
+                btnDiv.classList = "btn-group"
+                btn.classList = "btn btn-primary dropdown-toggle"
+                title.classList = "title"
+                description.classList = "description"
+                address.classList = "address"
+                collapse.classList = "accordion-collapse collapse"
+                accordion.classList = "accordion-body"
+                collapseRow.classList = "row accordion-body"
+                collapseLeft.classList = "col-8"
+                canvasRow.classList = "row"
+                canvasRow.style = "height: 100%;"
+                canvasCPUCol.classList = "col"
+                canvasRAMCol.classList = "col"
+                canvasDISKCol.classList = "col"
+                canvasCPULabel.classList = "r-wedges-title"
+                canvasCPUCanvas.classList = "dial"
+                canvasRAMLabel.classList = "r-wedges-title"
+                canvasRAMCanvas.classList = "dial"
+                canvasDISKLabel.classList = "r-wedges-title"
+                canvasDISKCanvas.classList = "dial"
+                collapseRight.classList = "col-4"
+                statusLabel.classList = "r-wedges-title"
+                statusLit.classList = "row card r-wedges"
+                uptimeLabel.classList = "r-wedges-title"
+                uptimeLit.classList = "row card r-wedges"
+
+                BGImg.id = "BG_" + element.attributes.identifier
+                icon.id = "IC_" + element.attributes.identifier
+                DLa.href = "https://www.mroley.dev"
+                DLa.id = "DLA_" + element.attributes.identifier
+                DLDiv.id = "DLD_" + element.attributes.identifier
+                btnDiv.role = "group"
+                btn.id = "btn_" + element.attributes.identifier
+                btn.type = "button"
+                btn.setAttribute("aria-expanded", "false")
+                btn.setAttribute("data-bs-toggle", "collapse")
+                btn.setAttribute("data-bs-target", "#collapse_" + element.attributes.identifier)
+                btn.setAttribute("aria-controls", "collapse_" + element.attributes.identifier)
+                btn.setAttribute("onclick", "javascript:webSocketFocusCh('" + element.attributes.identifier + "')")
+                collapse.id = "collapse_" + element.attributes.identifier
+                collapse.setAttribute("aria-labelledby", "btn_" + element.attributes.identifier)
+                collapse.setAttribute("data-bs-parent", "#landing")
+                canvasCPUCanvas.id = "CPU_" + element.attributes.identifier
+                canvasCPUCanvas.width = "300"
+                canvasCPUCanvas.height = "168.75"
+                canvasRAMCanvas.id = "RAM_" + element.attributes.identifier
+                canvasRAMCanvas.width = "300"
+                canvasRAMCanvas.height = "168.75"
+                canvasDISKCanvas.id = "DISK_" + element.attributes.identifier
+                canvasDISKCanvas.width = "300"
+                canvasDISKCanvas.height = "168.75"
+                statusLit.id = "statusPrint_" + element.attributes.identifier
+                uptimeLit.id = "uptimePrint_" + element.attributes.identifier
+
+                fetchAndSetUrls(element.attributes.identifier)
+
+                title.innerHTML = element.attributes.name
+                description.innerHTML = element.attributes.description
+                var getAddress = element.attributes.relationships.allocations.data[0].attributes.notes
+                if (getAddress == null) {getAddress = element.attributes.relationships.allocations.data[0].attributes.ip_alias + ":" + element.attributes.relationships.allocations.data[0].attributes.port}
+                lnk.innerHTML = getAddress
+                lnk.target = "_blank"
+                lnk.href = "https://panel.mroley.dev/server/" + element.attributes.identifier
+                
+                document.getElementById("landing").appendChild(BGImg)
+
+                initializeLive(element.attributes.identifier)
+        }
+        });
+    }
+
+    function drawCanvas(data, serverId) {
+        const circleCenterX = 100
+        const circleCenterY = 75
+        var info = [["CPU_"+serverId, data.cpu_absolute, "lightblue"], ["RAM_"+serverId, ((data.memory_bytes/1048576)/(serverLimits["'" + serverId + "'"][0])) * 100, "#cc0000"], ["DISK_"+serverId, ((data.disk_bytes/1048576)/(serverLimits["'" + serverId + "'"][1])) * 100, "#9933ff"]]
+        if (data.memory_bytes == 0) {info[1][1] = 0}
+        info.forEach(name => {
+            let canvas = document.getElementById(name[0]);
+            let ctx = canvas.getContext("2d");
+            ctx.clearRect(0, 0, canvas.width, canvas.height);
+            var grd = ctx.createRadialGradient(circleCenterX, circleCenterY, 35, circleCenterX, circleCenterY, 75);
+                grd.addColorStop(0, "transparent");
+                grd.addColorStop(1, "black");
+            ctx.fillStyle = grd;
+            ctx.beginPath();
+            ctx.arc(circleCenterX, circleCenterY, 65, Math.PI, Math.PI * 3);
+            ctx.fill();
+            var end = name[1]
+            ctx.beginPath();
+            ctx.arc(circleCenterX, circleCenterY, 65, Math.PI, Math.PI * 3);
+            ctx.arc(circleCenterX, circleCenterY, 55, Math.PI * 3, Math.PI, true);
+            ctx.fillStyle = "grey";
+            ctx.fill();
+            ctx.beginPath();
+            ctx.arc(circleCenterX, circleCenterY, 65, Math.PI, ((end * .02) + 1) * Math.PI);
+            ctx.arc(circleCenterX, circleCenterY, 55, ((end * .02) + 1) * Math.PI, Math.PI, true);
+            ctx.fillStyle = name[2];
+            ctx.fill();
+            ctx.font = "bold 20px Georgia";
+            ctx.textAlign = "center";
+            ctx.fillText(Math.floor(name[1]) + "%", circleCenterX, circleCenterY);
+            ctx.font = "20px Georgia";
+            ctx.fillStyle = "white";
+            if (name[0].slice(0,3)=="RAM") {ctx.fillText(Math.floor(data.memory_bytes/1048576) + "MB / " + (serverLimits["'" + serverId + "'"][0]) + "MB", circleCenterX, 160)}
+            if (name[0].slice(0,4)=="DISK") {ctx.fillText(Math.floor(data.disk_bytes/1048576) + "MB / " + (serverLimits["'" + serverId + "'"][1]) + "MB", circleCenterX, 160)}
+        })
+    }
+
+    function webSocketFocusCh(serverId) {
+        setTimeout(function(){if (window.getComputedStyle(document.getElementById("collapse_" + serverId)).display == "none") {
+            try{webSocket.close()}
+            catch{null}
+        }}, 1000)
+        function update(data, ID) {
+            data = JSON.parse(data[0])
+            document.getElementById("statusPrint_" + ID).innerHTML = data.state
+            document.getElementById("uptimePrint_" + ID).innerHTML = timeFormat(data.uptime)
+            drawCanvas(data, serverId)
+        }
+        fetch("https://panel.mroley.dev/api/client/servers/" + serverId + "/websocket", {
+        "method": "GET",
+        "headers": {
+            "Accept": "application/json",
+            "Content-Type": "application/json",
+            "Authorization": "Bearer ptlc_OEPXRXy647aoYseK04TnUZxsCTKn0DDCCzhpfT0DutN"
+        }
+        })
+        .then((response) => response.json())
+        .then(data => {
+            webSocket = new WebSocket(data.data.socket);
+
+            webSocket.onopen = async function(e) {
+                await webSocket.send('{"event":"auth","args":["' + data.data.token + '"]}');
+            };
+
+            webSocket.onmessage = function(e) {
+                response = JSON.parse(e.data)
+                if (response.event == "stats") {
+                    update(response.args, serverId)
+                }
+                if (response.event == "token expiring" | response.event == "token expired") {
+                    webSocket.send('{"event":"auth","args":["' + data.data.token + '"]}');
+                }
+            };
+        })
+        .catch(err => console.error(err));
+    }
+
+    function initializeLive(serverId) {
+        fetch("https://panel.mroley.dev/api/client/servers/" + serverId + "/resources", {
+        "method": "GET",
+        "headers": {
+            "Accept": "application/json",
+            "Content-Type": "application/json",
+            "Authorization": "Bearer ptlc_OEPXRXy647aoYseK04TnUZxsCTKn0DDCCzhpfT0DutN"
+        }
+        })
+        .then((response) => response.json())
+        .then(data => {
+            document.getElementById("statusPrint_" + serverId).innerHTML = data.attributes.current_state
+            document.getElementById("uptimePrint_" + serverId).innerHTML = timeFormat(data.attributes.resources.uptime)
+            drawCanvas(data.attributes.resources, serverId)
+        })
+        .catch(err => console.error(err));
+        
+    }
+    
+</script>
+<style>
+
+@media all and (min-width: 1051px) {
+    :root {
+    --title-size: 100pt;
+    --description-size: 25pt;
+    --addr-size: 35pt;
+    }
+}
+@media all and (min-width: 576px) and (max-width: 1050px) {
+    :root {
+    --title-size: 66pt;
+    --description-size: 15pt;
+    --addr-size: 25pt;
+    }
+}
+@media all and (max-width: 575px) {
+    :root {
+    --title-size: 50pt;
+    --description-size: 10pt;
+    --addr-size: 20pt;
+    }
+}
+
+:root {
+    --icon-color: black
+}
+.card {--bs-card-bg: #585858;}
+
+    body {background-color: #1a1a1a; overflow-x: hidden;}
+    .main {background-color: #1a1a1a; width: 100vw; height: 100%;}
+    .left {height: 100%; padding: 10px; background-color: rgba(26,26,26,0.9);}
+    .right {height: 100%; padding: 10px; padding-left: 30px;}
+    .icon {width: 100%; padding-top: calc(100% - 20px); aspect-ratio: 1;
+    background-image: url("https://assets.mroley.dev/minecraft_logo.png"); background-repeat: no-repeat; background-size: cover; background-position: center;}
+    .title {width: 100%; font-size: var(--title-size); line-height: var(--title-size); color: #007bbf;}
+    .description {width: 80%; font-style: italic; font-size: var(--description-size); padding-left: 20%; color: #999999; margin: 0px;}
+    .address {width: 90%; font-style: bold; font-size: var(--addr-size); padding-left: 10%; color: #cccccc;}
+    .r-wedges {margin: 3px 1px 3px 1px; ; font-size: 10pt; padding: 10px; text-align: center; color: white;}
+    .r-wedges-title {color: white;}
+    .dial {width: 100%; position: relative; margin: 5%; box-sizing: inherit; aspect-ratio: 16/9;}
+    .dial-container {padding-top: 100%; position: absolute; width: 100%;}
+    .card-BG-img {margin: 25px 0px 25px 0px; width: 100%;
+    background-image: url("https://assets.mroley.dev/minecraft_banner.jpg"); background-repeat: no-repeat; background-size: cover; background-position: center;}
+    .card-BG-gra { padding: 25px 0px 25px 0px; background-image: linear-gradient(rgba(0, 0, 0, 0.897), rgba(0, 0, 0, 0.267));}
+    a {color: inherit;}
+    a:hover {color: #aaaaaa;}
+    .DLDiv {position: absolute; right: 25px; width: 100px; height: 100px; background-color: rgba(0, 0, 0, 0.37); cursor: pointer; transition: all linear 0.3s; display: none; border-radius: 5px; opacity: 0.65;
+    background-image: url("https://assets.mroley.dev/download_icon.png"); background-repeat: no-repeat; background-size: 70%; background-position: center;}
+    .DLDiv:hover {background-color: rgba(0, 0, 0, 0.795); opacity: 1}
+</style>
+</head>
+<body>
+    <div class="main">
+        <br>
+        <div id="landing" class="acordion">
+        </div>
+        <br><br>
+    </div>
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.2.0/dist/js/bootstrap.bundle.min.js" integrity="sha384-A3rJD856KowSb7dwlZdYEkO39Gagi7vIsF0jrRAoQmDKKtQBHUuLZ9AsSv4jD4Xa" crossorigin="anonymous"></script>
+</body>
+</html>

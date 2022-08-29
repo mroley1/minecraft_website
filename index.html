@@ -131,7 +131,8 @@
     function run(servers) {
         servers.forEach((element, index) => {
             if(element.attributes.relationships.allocations.data[0].attributes.ip_alias.slice(0,2)=="mc") {
-                serverLimits["'" + element.attributes.identifier + "'"] = [element.attributes.limits.disk, element.attributes.limits.memory]
+                serverLimits["'" + element.attributes.identifier + "'"] = [element.attributes.limits.cpu, element.attributes.limits.disk, element.attributes.limits.memory]
+                if (serverLimits["'" + element.attributes.identifier + "'"][0]==0){serverLimits["'" + element.attributes.identifier + "'"][0]="∞"}
 
                 BGImg = document.createElement("div")
                 BGGra = document.createElement("div")
@@ -308,7 +309,7 @@
     function drawCanvas(data, serverId) {
         const circleCenterX = 100
         const circleCenterY = 75
-        var info = [["CPU_"+serverId, data.cpu_absolute, "lightblue"], ["RAM_"+serverId, ((data.memory_bytes/1048576)/(serverLimits["'" + serverId + "'"][0])) * 100, "#cc0000"], ["DISK_"+serverId, ((data.disk_bytes/1048576)/(serverLimits["'" + serverId + "'"][1])) * 100, "#9933ff"]]
+        var info = [["CPU_"+serverId, data.cpu_absolute, "lightblue"], ["RAM_"+serverId, ((data.memory_bytes/1048576)/(serverLimits["'" + serverId + "'"][1])) * 100, "#cc0000"], ["DISK_"+serverId, ((data.disk_bytes/1048576)/(serverLimits["'" + serverId + "'"][2])) * 100, "#9933ff"]]
         if (data.memory_bytes == 0) {info[1][1] = 0}
         info.forEach(name => {
             let canvas = document.getElementById(name[0]);
@@ -337,8 +338,9 @@
             ctx.fillText(Math.floor(name[1]) + "%", circleCenterX, circleCenterY);
             ctx.font = "20px Georgia";
             ctx.fillStyle = "white";
-            if (name[0].slice(0,3)=="RAM") {ctx.fillText(Math.floor(data.memory_bytes/1048576) + "MB / " + (serverLimits["'" + serverId + "'"][0]) + "MB", circleCenterX, 160)}
-            if (name[0].slice(0,4)=="DISK") {ctx.fillText(Math.floor(data.disk_bytes/1048576) + "MB / " + (serverLimits["'" + serverId + "'"][1]) + "MB", circleCenterX, 160)}
+            if (name[0].slice(0,3)=="CPU") {ctx.fillText(Math.floor(data.cpu_absolute) + "% / " + (serverLimits["'" + serverId + "'"][0]) + "%", circleCenterX, 160)}
+            if (name[0].slice(0,3)=="RAM") {ctx.fillText(Math.floor(data.memory_bytes/1048576) + "MB / " + (serverLimits["'" + serverId + "'"][1]) + "MB", circleCenterX, 160)}
+            if (name[0].slice(0,4)=="DISK") {ctx.fillText(Math.floor(data.disk_bytes/1048576) + "MB / " + (serverLimits["'" + serverId + "'"][2]) + "MB", circleCenterX, 160)}
         })
     }
 
